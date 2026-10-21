@@ -80,7 +80,7 @@ export default async function HomePage({
               sizes="(min-width: 1024px) 560px, 100vw"
               priority
             />
-            <figcaption>The setup · Studio 04</figcaption>
+            <figcaption>Our Recommendation</figcaption>
           </figure>
         </div>
       </section>

@@ -9,9 +9,9 @@ export function StoreNotesButton() {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <button className="link-btn" type="button" onClick={() => setOpen(true)}>
+      {/* <button className="link-btn" type="button" onClick={() => setOpen(true)}>
         How data works
-      </button>
+      </button> */}
       <DialogContent className="modal-shell" showCloseButton={false}>
         <button className="modal-close" type="button" onClick={() => setOpen(false)} aria-label="Close">
           <X className="icon" strokeWidth={1.75} />
