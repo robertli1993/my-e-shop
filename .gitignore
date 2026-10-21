@@ -34,6 +34,18 @@ yarn-error.log*
 .env*
 !.env.example
 
+# credentials / local auth
+.npmrc
+.netrc
+.pypirc
+id_rsa*
+id_ed25519*
+*.key
+*.p12
+*.pfx
+*.jks
+*.keystore
+
 # local database
 /data/*.db
 /data/*.db-*
