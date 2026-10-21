@@ -161,7 +161,7 @@ export default async function ProductPage({
           <div className="section-head">
             <div>
               <p className="eyebrow">Pairs well with</p>
-              <h2>More from {product.category}</h2>
+              <h2>You might also like</h2>
             </div>
             <Link className="link small" href="/">
               See all tech

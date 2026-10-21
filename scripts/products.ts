@@ -87,15 +87,15 @@ function printHelp() {
 Usage:
   npm run products -- list
   npm run products -- show <id>
-  npm run products -- add --name "Ridge Mat" --category Sleep --price 59 --stock 10 --image /assets/p4.jpg
-  npm run products -- update --id ridge-mat --price 49 --stock 12
-  npm run products -- delete --id ridge-mat
+  npm run products -- add --name "Studio Dock" --category Accessories --price 129 --stock 10 --image /assets/tech/xiaomi-power-bank.jpg
+  npm run products -- update --id studio-dock --price 119 --stock 12
+  npm run products -- delete --id studio-dock
 
 Options (add):
   --name, --category, --price (USD), --stock, --image
   --id (default: slug of name), --tagline, --description, --alt
-  --tags "sleep,pad", --specs "Weight:450 g|Fill:Down"
-  --highlights "Line one|Line two", --in-box "Mat|Sack", --care "Text"
+  --tags "dock,hub,usb-c", --specs "Ports:3× USB-C|Weight:120 g"
+  --highlights "Line one|Line two", --in-box "Dock|Cable", --care "Text"
 
 Categories: ${CATEGORIES.join(", ")}
 Database: ${process.env.DATABASE_PATH ?? "data/northline.db"}`);

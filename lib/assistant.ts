@@ -313,10 +313,6 @@ function categoryLabel(cents: AssistantFilters): string {
   return parts.join(" ");
 }
 
-function orderStatusLabel(user: SessionUser | null): string {
-  return user ? `signed in as ${user.name}` : "browsing as a guest";
-}
-
 export async function buildAssistantReply(
   query: string,
   user: SessionUser | null,
@@ -659,5 +655,3 @@ export async function buildAssistantReply(
     source,
   };
 }
-
-export { orderStatusLabel };

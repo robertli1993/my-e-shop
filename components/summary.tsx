@@ -28,7 +28,7 @@ export function Summary({
   tail?: React.ReactNode;
 }) {
   return (
-    <Card className="summary gap-0 py-0">
+    <Card className="summary gap-0 p-5">
       <h2>{title}</h2>
       <div className="summary-items">
         {lines.map((line) => (

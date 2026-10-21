@@ -23,7 +23,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const orderCount = user ? getOrderCount(user.id) : 0;
 
   return (
-    <html lang="en" className="h-full antialiased">
+    <html lang="en" className="h-full antialiased" data-scroll-behavior="smooth">
       <body className="min-h-full">
         <ToastProvider>
           <a className="skip-link" href="#main">

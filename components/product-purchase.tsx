@@ -63,16 +63,18 @@ export function ProductPurchase({
           nextPath={`/product/${productId}`}
         />
       </div>
-      <Button
-        type="button"
-        variant="outline"
-        className="h-11 w-full pt-5"
-        onClick={buyNow}
-        disabled={soldOut}
-      >
-        Buy now
-        <ArrowRight className="icon-sm" strokeWidth={1.75} aria-hidden="true" />
-      </Button>
+      <div className="pt-5">
+        <Button
+          type="button"
+          variant="outline"
+          className="h-11 w-full"
+          onClick={buyNow}
+          disabled={soldOut}
+        >
+          Buy now
+          <ArrowRight className="icon-sm" strokeWidth={1.75} aria-hidden="true" />
+        </Button>
+      </div>
     </>
   );
 }

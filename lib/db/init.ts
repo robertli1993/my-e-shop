@@ -170,11 +170,11 @@ function seed(sqlite: Database.Database) {
 
   const address = {
     fullName: DEMO_ACCOUNT.name,
-    line1: "214 Alder Street",
-    line2: "Apt 4",
-    city: "Portland",
-    region: "OR",
-    postal: "97214",
+    line1: "88 Pine Street",
+    line2: "Apt 4B",
+    city: "Seattle",
+    region: "WA",
+    postal: "98101",
     country: "United States",
   };
 
@@ -235,10 +235,12 @@ function seed(sqlite: Database.Database) {
 
 export function initializeDatabase(sqlite: Database.Database) {
   sqlite.exec(SCHEMA);
-  const marker = sqlite.prepare("SELECT value FROM counters WHERE name = 'seeded'").get() as
-    | { value: number }
-    | undefined;
-  if (marker) return;
-  const seedTransaction = sqlite.transaction(() => seed(sqlite));
-  seedTransaction();
+  const seedTransaction = sqlite.transaction(() => {
+    const marker = sqlite.prepare("SELECT value FROM counters WHERE name = 'seeded'").get() as
+      | { value: number }
+      | undefined;
+    if (marker) return;
+    seed(sqlite);
+  });
+  seedTransaction.immediate();
 }

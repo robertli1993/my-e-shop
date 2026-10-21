@@ -17,13 +17,13 @@ const globalForDb = globalThis as typeof globalThis & {
 function createStore(): Store {
   const configured = process.env.DATABASE_PATH?.trim();
   const file = configured
-    ? path.resolve(process.cwd(), configured)
+    ? path.resolve(/* turbopackIgnore: true */ process.cwd(), configured)
     : path.join(process.cwd(), "data", "northline.db");
 
   fs.mkdirSync(path.dirname(file), { recursive: true });
 
   const sqlite = new Database(file);
-  sqlite.pragma("journal_mode = WAL");
+  sqlite.pragma("journal_mode = DELETE");
   sqlite.pragma("synchronous = NORMAL");
   sqlite.pragma("foreign_keys = ON");
   sqlite.pragma("busy_timeout = 5000");

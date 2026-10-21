@@ -52,7 +52,7 @@ npm run products -- update --id studio-dock --price 119 --stock 12
 npm run products -- delete --id studio-dock
 ```
 
-`add` accepts `--description`, `--specs "Weight:450 g|Fill:Down"`,
+`add` accepts `--description`, `--specs "Ports:3× USB-C|Weight:120 g"`,
 `--highlights "Line one|Line two"`, `--in-box`, `--care` and `--alt` in addition to the
 required flags. Products deleted from the catalog keep their snapshots inside historical
 orders.
@@ -91,5 +91,6 @@ npx tsc --noEmit
 npm run build
 ```
 
-Delete `data/northline.db` (and its `-wal`/`-shm` files) while the server is stopped to
-reset the demo database; it will be re-seeded on the next boot.
+Delete `data/northline.db` while the server is stopped to reset the demo database; it
+will be re-seeded on the next boot. Remove any leftover `-wal`/`-shm` sidecars from an
+older run as well.
