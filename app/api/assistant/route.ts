@@ -1,6 +1,6 @@
 import { jsonError, readJson } from "@/lib/api";
 import { getSessionUser } from "@/lib/auth/session";
-import { buildAssistantReply } from "@/lib/assistant-agent";
+import { streamAssistantReply } from "@/lib/assistant-agent";
 import { assistantSchema, fieldErrors } from "@/lib/validation";
 
 export async function POST(request: Request) {
@@ -11,8 +11,14 @@ export async function POST(request: Request) {
     }
 
     const user = await getSessionUser();
-    const response = await buildAssistantReply(parsed.data.query, user);
-    return Response.json(response);
+    const stream = await streamAssistantReply(parsed.data.query, user, request.signal);
+    return new Response(stream, {
+      headers: {
+        "content-type": "application/x-ndjson; charset=utf-8",
+        "cache-control": "no-cache, no-transform",
+        "x-accel-buffering": "no",
+      },
+    });
   } catch (error) {
     console.error(error);
     return jsonError(500, "The guide could not answer that. Please try again.");

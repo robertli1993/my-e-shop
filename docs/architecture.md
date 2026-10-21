@@ -111,8 +111,8 @@ components/
   cart-lines.tsx              optimistic quantity/remove updates
   checkout-form.tsx           client validation + POST /api/orders
   orders-explorer.tsx         client status filter over server data
-  chat-widget.tsx             global guide dialog, suggestion chips, POST /api/assistant
-  chat-widget-views.tsx       guide messages, product/order cards, action links
+  chat-widget.tsx             global guide dialog, NDJSON stream reader, suggestion chips
+  chat-widget-views.tsx       guide messages, tool trace, product/order cards, action links
   toast-provider.tsx          success/warn toast context
   site-header.tsx             account menu, bag count, logout
   site-footer.tsx, summary.tsx, order-visuals.tsx, auth-aside.tsx, ...
@@ -132,7 +132,7 @@ lib/
   types.ts                    Product, CartLine, OrderSummary, OrderDetail, SessionUser
   catalog.ts                  the six category names
   assistant.ts                deterministic search, fallback replies, filter → URL
-  assistant-agent.ts          optional ToolLoopAgent and tool result projection
+  assistant-agent.ts          optional ToolLoopAgent, streaming, tool result projection
   auth-url.ts, redirect.ts    login-resume parameters, safe `next` validation
 
 scripts/products.ts           list/show/add/update/delete catalog rows
@@ -307,7 +307,7 @@ sequenceDiagram
   L->>Q: getCartCount(), getOrderCount() (signed in only)
   Q->>D: SELECT
   L->>P: render children
-  P->>P: await io(); awaits params/searchParams
+  P->>P: await io(), then await params/searchParams
   P->>Q: getProduct(), listProducts()
   Q->>D: SELECT
   P-->>B: streamed HTML + RSC payload
@@ -345,7 +345,7 @@ sequenceDiagram
         D->>DB: ROLLBACK
         R-->>C: 409 { error }
       else
-        D->>DB: INSERT order, items, event; clear cart
+        D->>DB: INSERT order, items, event, then clear cart
         D->>DB: COMMIT
         D-->>R: { orderId }
         R-->>C: 201 { orderId }
@@ -426,16 +426,18 @@ deleted or are out of stock and returns `{ added, limited }`.
 
 ### 9.5 Guide
 
-`app/api/assistant/route.ts` delegates to `buildAssistantReply`:
+`app/api/assistant/route.ts` delegates to `streamAssistantReply`:
 
 - With `OPENDESIGN_API_KEY`: a `ToolLoopAgent` with six read-only tools (`search_products`,
   `find_product`, `list_categories`, `view_cart`, `view_orders`, `view_order`), a six-step
-  cap, a 25-second timeout, temperature 0.1 and a 900-token output cap.
+  cap, a 25-second abort, temperature 0.1 and a 900-token output cap.
 - Without a key, or on any agent failure: deterministic intent routing and catalog search in
   `lib/assistant.ts`.
 
-The route then projects **tool results** into the response’s `products` and `orders` arrays;
-model text cannot inject a product card. See [ai-assistant.md](./ai-assistant.md).
+The route returns an `application/x-ndjson` stream of `tool-call`, `tool-result`, `text` and
+`done` events. It projects **tool results** into the final response’s `products` and `orders`
+arrays; model text cannot inject a product card. The widget renders the tool trace and appends
+text deltas as they arrive. See [ai-assistant.md](./ai-assistant.md).
 
 ### 9.6 Catalog CLI
 
@@ -567,8 +569,8 @@ primary keys.
 10. **Duplicated totals logic in the seed.** `lib/db/init.ts` has its own `totalsFor`; changes
     to `lib/money.ts` will not update sample orders.
 11. **No automated tests.** Verification is lint, type-check, build and manual smoke.
-12. **Guide replies are not streamed and have no server-side conversation memory.** Each
-    request is independent; the widget only keeps client-side message state.
+12. **The guide streams NDJSON but has no server-side conversation memory.** Each request is
+    independent; the widget only keeps client-side message state.
 
 ## 15. Extension points
 

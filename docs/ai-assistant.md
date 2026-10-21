@@ -5,7 +5,7 @@ The guide is the chat surface behind the floating “Ask Northline” button and
 **optional infrastructure**: without an API key, or when the model call fails, a deterministic
 catalog implementation answers instead.
 
-Entry point: `POST /api/assistant` → `buildAssistantReply(query, user)` in
+Entry point: `POST /api/assistant` → `streamAssistantReply(query, user)` in
 `lib/assistant-agent.ts`.
 
 ## 1. Two modes
@@ -14,18 +14,42 @@ Entry point: `POST /api/assistant` → `buildAssistantReply(query, user)` in
 flowchart TD
   A["POST /api/assistant<br/>{ query }"] --> B{"OPENDESIGN_API_KEY set?"}
   B -- no --> F["buildFallbackReply<br/>deterministic intent routing"]
-  B -- yes --> C["ToolLoopAgent.generate<br/>25 s timeout, 6 steps"]
+  B -- yes --> C["ToolLoopAgent.stream<br/>25 s timeout, 6 steps"]
+  C -- tool call --> T["tool-call event"]
+  C -- tool result --> U["tool-result event"]
+  C -- text delta --> X["text event"]
   C -- success --> D["Project toolResults<br/>products, orders, actions"]
   C -- error / timeout --> F
-  D --> R["AssistantResponse<br/>source: agent"]
-  F --> R2["AssistantResponse<br/>source: catalog"]
-  R --> E["200 JSON"]
-  R2 --> E
+  D --> R["done event<br/>AssistantResponse<br/>source: agent"]
+  F --> R2["done event<br/>AssistantResponse<br/>source: catalog"]
+  T --> S["200 application/x-ndjson"]
+  U --> S
+  X --> S
+  R --> S
+  R2 --> S
 ```
 
-Both modes return the same response contract, so the widget does not branch on mode.
+Both modes emit the same event contract, so the widget does not branch on mode. The
+`done` event carries the complete `AssistantResponse` used for cards and actions.
 
-## 2. Response contract
+## 2. Streaming contract
+
+`POST /api/assistant` returns `application/x-ndjson`; each line is one
+`AssistantStreamEvent`:
+
+```ts
+type AssistantStreamEvent =
+  | { type: "text"; text: string }
+  | { type: "tool-call"; id: string; name: string; input: unknown }
+  | { type: "tool-result"; id: string; status: "done" | "error" }
+  | { type: "done"; response: AssistantResponse }
+  | { type: "error"; message: string };
+```
+
+Ordering: a `tool-call` precedes its matching `tool-result`; `text` deltas arrive as
+the model produces them; exactly one `done` closes a successful stream. A provider or
+timeout failure emits `tool-result` errors for still-running calls, then a fallback
+`done`. The final response is:
 
 ```ts
 type AssistantResponse = {
@@ -40,12 +64,18 @@ type AssistantResponse = {
 ```
 
 `Product` and `OrderSummary` are the same DTOs used by the storefront
-(`lib/types.ts`). The widget renders:
+(`lib/types.ts`). While the stream runs the widget:
 
-- `reply` as plain text inside a `<p>`,
+- appends `text` deltas to the pending bot bubble,
+- renders each `tool-call` as a compact trace row (`search_products` plus its input),
+- marks the row done/error from `tool-result`.
+
+On `done` it replaces the partial text with `response.reply` and renders:
+
 - up to four product cards (image, name, category, price),
 - up to three order cards (id, date, total, status pill),
-- action links, with the `primary` one styled differently.
+- action links, with the `primary` one styled differently,
+- the tool trace, retained above the reply.
 
 The widget closes when a card or action link is followed.
 
@@ -71,7 +101,7 @@ The base URL has a trailing slash removed; the model id defaults to
 | Step cap | `stopWhen: isStepCount(6)` |
 | Temperature | `0.1` |
 | Output cap | `maxOutputTokens: 900` |
-| Request timeout | `AbortSignal.timeout(25_000)` |
+| Request timeout | `AbortController` aborts after 25 s or when the request disconnects |
 | Conversation history | none — one prompt per request |
 
 ### 3.2 Instructions
@@ -116,8 +146,9 @@ Account tools return `signedIn: false` rather than throwing when there is no ses
 
 ### 3.4 Projection into the response
 
-The route does **not** trust the model to assemble cards. It iterates
-`result.toolResults` and builds maps:
+The route does **not** trust the model to assemble cards. It consumes `result.stream`,
+forwards `text-delta`, `tool-call` and `tool-result` events, and collects completed
+`tool-result` parts. It then builds maps from those results:
 
 | Tool result | Effect |
 | --- | --- |
@@ -132,8 +163,8 @@ Then:
 
 - `productList` = unique products in first-seen order, sliced to **4**.
 - `orderList` = unique orders in first-seen order, sliced to **3**.
-- `reply` = `plainText(result.text)`, falling back to a generated one-liner if the model
-  returned no text. `plainText` strips `**bold**`, backticks and line breaks.
+- `reply` = `plainText(concatenated text deltas)`, falling back to a generated one-liner if
+  the model returned no text. `plainText` strips `**bold**`, backticks and line breaks.
 - `intent` is assigned by priority: orders → cart → shopping (catalog) → catalog
   (categories) → help.
 - `source` is `"agent"`.
@@ -157,11 +188,13 @@ If the tool reported more matches than the four shown, an extra action links to
 Triggered when:
 
 - `OPENDESIGN_API_KEY` is unset,
-- `agent.generate` throws, times out or is aborted,
-- any error occurs while projecting results.
+- `agent.stream` throws, times out or is aborted,
+- the stream emits an `error` part,
+- an error occurs while projecting results.
 
-The projection catch logs `console.warn("Tech guide agent request failed", message)` and calls
-`buildFallbackReply(query, user)`.
+The catch logs `console.warn("Tech guide agent request failed", message)`, marks still-running
+tool calls as `error`, and emits a fallback `done` from `buildFallbackReply(query, user)`.
+Partial text already sent is replaced by the client when `done` arrives.
 
 ### 4.1 Intent routing
 
@@ -272,20 +305,23 @@ Failure handling:
 
 | Failure | Result |
 | --- | --- |
-| No key | Deterministic fallback, `source: "catalog"` |
-| Provider HTTP error / rate limit | Caught → fallback |
-| 25 s timeout | `AbortSignal` aborts → fallback |
-| Tool execution error | Propagates out of `generate` → fallback |
-| Projection error | Caught → fallback |
-| Fallback itself throws (e.g. DB error) | Route returns `500` |
+| No key | Deterministic fallback stream, `source: "catalog"` |
+| Provider HTTP error / rate limit | Caught → fallback `done` |
+| 25 s timeout | `AbortController` aborts → fallback `done` |
+| Tool execution error | `tool-error` part → trace marked error; the agent may continue |
+| Projection error | Caught → fallback `done` |
+| Fallback itself throws after streaming starts (e.g. DB error) | `error` event |
+| Fallback itself throws before streaming starts | Route returns `500` |
 | Agent returns no text | Generated one-line summary + projected cards |
 
-There is no app-level retry, streaming or token accounting.
+There is no app-level retry or token accounting. The 25 s abort covers the whole tool loop.
 
 ## 8. Client integration
 
-- `chat-widget.tsx` holds messages in local state (`id`, role, text/response, pending). It
-  posts `{ query }` and replaces the pending bot message with the JSON response.
+- `chat-widget.tsx` holds messages in local state (`id`, role, text/response, toolCalls,
+  pending). It posts `{ query }`, reads the NDJSON stream, appends `text` deltas, updates the
+  tool trace from `tool-call`/`tool-result`, and replaces the pending message with the
+  `done.response`.
 - A refresh loses the conversation; nothing is stored server-side.
 - `components/chat-events.ts` defines `northline:open-guide`. `GuideButton` dispatches it
   with an optional query; the widget opens and sends that query immediately.
@@ -294,7 +330,7 @@ There is no app-level retry, streaming or token accounting.
   “What's in my bag?”.
 - Successful product/order/action links close the panel.
 - Errors are shown as a bot text message; the HTTP layer returns
-  `{ error }` only for 422/500.
+  `{ error }` only for 422/500 before the stream starts.
 
 ## 9. Limitations and extension points
 
@@ -306,7 +342,7 @@ Limitations:
 - Product cards are truncated at four; the “see all” link is the only path to the rest.
 - The client-side catalog filter and `matchProducts` are separate implementations; a guided
   link can show a different set than the reply described.
-- No streaming; a long model call holds the request until completion or the 25 s timeout.
+- The tool trace shows the call and status, not the full tool output.
 
 Extension points:
 

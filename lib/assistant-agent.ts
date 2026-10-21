@@ -9,6 +9,7 @@ import {
   type AssistantAction,
   type AssistantFilters,
   type AssistantResponse,
+  type AssistantStreamEvent,
 } from "@/lib/assistant";
 import { CATEGORIES } from "@/lib/catalog";
 import {
@@ -247,145 +248,253 @@ function buildAgent(user: SessionUser | null) {
   });
 }
 
-export async function buildAssistantReply(
-  query: string,
-  user: SessionUser | null,
-): Promise<AssistantResponse> {
-  const agent = buildAgent(user);
-  if (!agent) return buildFallbackReply(query, user);
+type ToolResult = {
+  toolName: string;
+  output?: unknown;
+};
 
-  try {
-    const result = await agent.generate({
-      prompt: query,
-      abortSignal: AbortSignal.timeout(25_000),
-    });
+function buildResponse(toolResults: ToolResult[], text: string): AssistantResponse {
+  const products = new Map<string, Product>();
+  const orders = new Map<string, OrderSummary>();
+  let filters: AssistantFilters | null = null;
+  let totalMatches: number | null = null;
+  let authRequired = false;
+  let cartCount = 0;
+  let usedCart = false;
+  let usedOrders = false;
+  let usedCatalog = false;
+  let usedCategories = false;
 
-    const products = new Map<string, Product>();
-    const orders = new Map<string, OrderSummary>();
-    let filters: AssistantFilters | null = null;
-    let totalMatches: number | null = null;
-    let authRequired = false;
-    let cartCount = 0;
-    let usedCart = false;
-    let usedOrders = false;
-    let usedCatalog = false;
-    let usedCategories = false;
+  for (const toolResult of toolResults) {
+    const payload = (toolResult.output ?? {}) as CatalogToolPayload;
 
-    for (const toolResult of result.toolResults) {
-      const payload = (toolResult.output ?? {}) as CatalogToolPayload;
+    if (payload.signedIn === false) authRequired = true;
 
-      if (payload.signedIn === false) authRequired = true;
-
-      switch (toolResult.toolName) {
-        case "search_products": {
-          usedCatalog = true;
-          if (Array.isArray(payload.products)) {
-            for (const product of payload.products) products.set(product.id, product);
-          }
-          if (typeof payload.total === "number") totalMatches = payload.total;
-          if (payload.filters) filters = payload.filters;
-          break;
+    switch (toolResult.toolName) {
+      case "search_products": {
+        usedCatalog = true;
+        if (Array.isArray(payload.products)) {
+          for (const product of payload.products) products.set(product.id, product);
         }
-        case "find_product": {
-          usedCatalog = true;
-          if (payload.product) products.set(payload.product.id, payload.product);
-          break;
+        if (typeof payload.total === "number") totalMatches = payload.total;
+        if (payload.filters) filters = payload.filters;
+        break;
+      }
+      case "find_product": {
+        usedCatalog = true;
+        if (payload.product) products.set(payload.product.id, payload.product);
+        break;
+      }
+      case "list_categories": {
+        usedCategories = true;
+        break;
+      }
+      case "view_cart": {
+        usedCart = true;
+        if (typeof payload.count === "number") cartCount = payload.count;
+        if (Array.isArray(payload.lines)) {
+          for (const line of payload.lines) products.set(line.product.id, line.product);
         }
-        case "list_categories": {
-          usedCategories = true;
-          break;
+        break;
+      }
+      case "view_orders": {
+        usedOrders = true;
+        if (Array.isArray(payload.orders)) {
+          for (const order of payload.orders) orders.set(order.id, order);
         }
-        case "view_cart": {
-          usedCart = true;
-          if (typeof payload.count === "number") cartCount = payload.count;
-          if (Array.isArray(payload.lines)) {
-            for (const line of payload.lines) products.set(line.product.id, line.product);
-          }
-          break;
-        }
-        case "view_orders": {
-          usedOrders = true;
-          if (Array.isArray(payload.orders)) {
-            for (const order of payload.orders) orders.set(order.id, order);
-          }
-          break;
-        }
-        case "view_order": {
-          usedOrders = true;
-          if (payload.order) orders.set(payload.order.id, payload.order);
-          break;
-        }
+        break;
+      }
+      case "view_order": {
+        usedOrders = true;
+        if (payload.order) orders.set(payload.order.id, payload.order);
+        break;
       }
     }
+  }
 
-    const productList = Array.from(products.values()).slice(0, 4);
-    const orderList = Array.from(orders.values()).slice(0, 3);
-    const reply =
-      plainText(result.text) || fallbackReply(productList, orderList, !authRequired);
+  const productList = Array.from(products.values()).slice(0, 4);
+  const orderList = Array.from(orders.values()).slice(0, 3);
+  const reply = plainText(text) || fallbackReply(productList, orderList, !authRequired);
 
-    const actions: AssistantAction[] = [];
+  const actions: AssistantAction[] = [];
 
-    if (authRequired) {
-      addAction(actions, { label: "Sign in", href: "/signin", primary: true });
-      addAction(actions, { label: "Create account", href: "/signup" });
-    } else if (usedCart) {
-      addAction(actions, { label: "Open bag", href: "/cart", primary: true });
-      if (cartCount > 0) addAction(actions, { label: "Checkout", href: "/checkout" });
-    } else if (usedOrders) {
-      if (orderList.length === 1) {
-        addAction(actions, {
-          label: `Open ${orderList[0].id}`,
-          href: `/orders/${orderList[0].id}`,
-          primary: true,
-        });
-        addAction(actions, { label: "All orders", href: "/orders" });
-      } else {
-        addAction(actions, { label: "View all orders", href: "/orders", primary: true });
-      }
-    } else if (productList.length === 1) {
+  if (authRequired) {
+    addAction(actions, { label: "Sign in", href: "/signin", primary: true });
+    addAction(actions, { label: "Create account", href: "/signup" });
+  } else if (usedCart) {
+    addAction(actions, { label: "Open bag", href: "/cart", primary: true });
+    if (cartCount > 0) addAction(actions, { label: "Checkout", href: "/checkout" });
+  } else if (usedOrders) {
+    if (orderList.length === 1) {
       addAction(actions, {
-        label: `View ${productList[0].name}`,
-        href: `/product/${productList[0].id}`,
+        label: `Open ${orderList[0].id}`,
+        href: `/orders/${orderList[0].id}`,
         primary: true,
       });
-      addAction(actions, { label: "Browse the catalog", href: "/" });
-    } else if (productList.length > 1 || usedCatalog || usedCategories) {
-      addAction(actions, { label: "Browse the catalog", href: "/", primary: true });
+      addAction(actions, { label: "All orders", href: "/orders" });
+    } else {
+      addAction(actions, { label: "View all orders", href: "/orders", primary: true });
     }
-
-    if (totalMatches !== null && totalMatches > productList.length && filters) {
-      addAction(actions, {
-        label: `See all ${totalMatches} in the catalog`,
-        href: filtersToHref(filters),
-      });
-    }
-
-    if (actions.length === 0) {
-      addAction(actions, { label: "Browse the catalog", href: "/", primary: true });
-    }
-
-    return {
-      intent: usedOrders
-        ? "orders"
-        : usedCart
-          ? "cart"
-          : usedCatalog
-            ? "shopping"
-            : usedCategories
-              ? "catalog"
-              : "help",
-      reply,
-      products: productList,
-      orders: orderList,
-      actions,
-      filters,
-      source: "agent",
-    };
-  } catch (error) {
-    console.warn(
-      "Tech guide agent request failed",
-      error instanceof Error ? error.message : error,
-    );
-    return buildFallbackReply(query, user);
+  } else if (productList.length === 1) {
+    addAction(actions, {
+      label: `View ${productList[0].name}`,
+      href: `/product/${productList[0].id}`,
+      primary: true,
+    });
+    addAction(actions, { label: "Browse the catalog", href: "/" });
+  } else if (productList.length > 1 || usedCatalog || usedCategories) {
+    addAction(actions, { label: "Browse the catalog", href: "/", primary: true });
   }
+
+  if (totalMatches !== null && totalMatches > productList.length && filters) {
+    addAction(actions, {
+      label: `See all ${totalMatches} in the catalog`,
+      href: filtersToHref(filters),
+    });
+  }
+
+  if (actions.length === 0) {
+    addAction(actions, { label: "Browse the catalog", href: "/", primary: true });
+  }
+
+  return {
+    intent: usedOrders
+      ? "orders"
+      : usedCart
+        ? "cart"
+        : usedCatalog
+          ? "shopping"
+          : usedCategories
+            ? "catalog"
+            : "help",
+    reply,
+    products: productList,
+    orders: orderList,
+    actions,
+    filters,
+    source: "agent",
+  };
+}
+
+function streamSingleResponse(response: AssistantResponse): ReadableStream<Uint8Array> {
+  const encoder = new TextEncoder();
+  return new ReadableStream<Uint8Array>({
+    start(controller) {
+      controller.enqueue(
+        encoder.encode(`${JSON.stringify({ type: "text", text: response.reply })}\n`),
+      );
+      controller.enqueue(encoder.encode(`${JSON.stringify({ type: "done", response })}\n`));
+      controller.close();
+    },
+  });
+}
+
+export async function streamAssistantReply(
+  query: string,
+  user: SessionUser | null,
+  requestSignal?: AbortSignal,
+): Promise<ReadableStream<Uint8Array>> {
+  const agent = buildAgent(user);
+  if (!agent) return streamSingleResponse(await buildFallbackReply(query, user));
+
+  const encoder = new TextEncoder();
+  let cancelled = false;
+  let abortController: AbortController | null = null;
+
+  return new ReadableStream<Uint8Array>({
+    async start(controller) {
+      const toolResults: ToolResult[] = [];
+      const pendingToolCalls = new Set<string>();
+      let text = "";
+      let closed = false;
+
+      const send = (event: AssistantStreamEvent) => {
+        if (cancelled || closed) return;
+        try {
+          controller.enqueue(encoder.encode(`${JSON.stringify(event)}\n`));
+        } catch {
+          cancelled = true;
+        }
+      };
+
+      const failPendingToolCalls = () => {
+        for (const id of pendingToolCalls) {
+          send({ type: "tool-result", id, status: "error" });
+        }
+        pendingToolCalls.clear();
+      };
+
+      const abort = new AbortController();
+      abortController = abort;
+      const timeout = setTimeout(() => abort.abort(), 25_000);
+      const onRequestAbort = () => abort.abort();
+      if (requestSignal?.aborted) {
+        abort.abort();
+      } else {
+        requestSignal?.addEventListener("abort", onRequestAbort, { once: true });
+      }
+
+      try {
+        const result = await agent.stream({
+          prompt: query,
+          abortSignal: abort.signal,
+        });
+
+        for await (const part of result.stream) {
+          if (part.type === "text-delta") {
+            text += part.text;
+            send({ type: "text", text: part.text });
+          } else if (part.type === "tool-call") {
+            pendingToolCalls.add(part.toolCallId);
+            send({
+              type: "tool-call",
+              id: part.toolCallId,
+              name: part.toolName,
+              input: part.input,
+            });
+          } else if (part.type === "tool-result") {
+            pendingToolCalls.delete(part.toolCallId);
+            toolResults.push({ toolName: part.toolName, output: part.output });
+            send({ type: "tool-result", id: part.toolCallId, status: "done" });
+          } else if (part.type === "tool-error") {
+            pendingToolCalls.delete(part.toolCallId);
+            send({ type: "tool-result", id: part.toolCallId, status: "error" });
+          } else if (part.type === "error") {
+            throw part.error;
+          }
+        }
+
+        failPendingToolCalls();
+        send({ type: "done", response: buildResponse(toolResults, text) });
+      } catch (error) {
+        console.warn(
+          "Tech guide agent request failed",
+          error instanceof Error ? error.message : error,
+        );
+        failPendingToolCalls();
+        try {
+          send({ type: "done", response: await buildFallbackReply(query, user) });
+        } catch (fallbackError) {
+          console.error(fallbackError);
+          send({ type: "error", message: "The guide could not answer that. Please try again." });
+        }
+      } finally {
+        clearTimeout(timeout);
+        requestSignal?.removeEventListener("abort", onRequestAbort);
+        abortController = null;
+        closed = true;
+        if (!cancelled) {
+          try {
+            controller.close();
+          } catch {
+            // The client may have already closed the stream.
+          }
+        }
+      }
+    },
+    cancel() {
+      cancelled = true;
+      abortController?.abort();
+    },
+  });
 }

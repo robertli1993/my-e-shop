@@ -1,8 +1,9 @@
 # Northline HTTP API
 
-All JSON endpoints live under `app/api/**/route.ts` and run in the Node.js runtime. They are
-called by client components with same-origin `fetch`; there is no public API versioning,
-CORS configuration, API key or gateway.
+All endpoints live under `app/api/**/route.ts` and run in the Node.js runtime. Most return
+JSON; `POST /api/assistant` streams NDJSON. They are called by client components with
+same-origin `fetch`; there is no public API versioning, CORS configuration, API key or
+gateway.
 
 ## 1. Conventions
 
@@ -337,7 +338,27 @@ user-scoped.
 
 Body (`assistantSchema`): `{ "query": "laptops under $1,500" }` — trimmed, 1–500 characters.
 
-Success `200` returns `AssistantResponse`:
+Success `200` returns an `application/x-ndjson` stream: one JSON event per line.
+
+```json
+{"type":"tool-call","id":"call_…","name":"search_products","input":{"query":"laptops","maxPrice":1500}}
+{"type":"tool-result","id":"call_…","status":"done"}
+{"type":"text","text":"Two"}
+{"type":"text","text":" matches"}
+{"type":"done","response":{"intent":"shopping","reply":"…","products":[],"orders":[],"actions":[],"filters":null,"source":"agent"}}
+```
+
+Event contract (`AssistantStreamEvent` in `lib/assistant.ts`):
+
+| Type | Fields | Meaning |
+| --- | --- | --- |
+| `tool-call` | `id`, `name`, `input` | A model-requested tool call is starting |
+| `tool-result` | `id`, `status` (`done` / `error`) | That tool call completed |
+| `text` | `text` | A reply delta; concatenate in arrival order |
+| `done` | `response` | Final `AssistantResponse`, including projected cards/actions |
+| `error` | `message` | The stream could not produce a response |
+
+`done.response` has the existing `AssistantResponse` shape:
 
 ```json
 {
@@ -365,11 +386,11 @@ four, order cards at three. See [ai-assistant.md](./ai-assistant.md).
 
 | Status | Condition |
 | --- | --- |
-| 422 | Empty/overlong query |
-| 500 | Invalid JSON or unexpected failure in both the agent and fallback |
+| 422 | Empty/overlong query (JSON error envelope) |
+| 500 | Invalid JSON or unexpected failure before streaming starts (JSON error envelope) |
 
-Agent failures do **not** produce a 500: `buildAssistantReply` catches them and returns the
-deterministic fallback.
+Agent failures after the stream starts do **not** produce a 500: `streamAssistantReply`
+emits a fallback `done` response and the client replaces any partial text.
 
 ## 8. Client call sites
 
@@ -384,7 +405,7 @@ deterministic fallback.
 | `checkout-form.tsx` | `POST /api/orders` | toast, `/orders/[id]?placed=1`, `router.refresh()` |
 | `cancel-order-button.tsx` | `POST /api/orders/[id]/cancel` | toast, `router.refresh()` |
 | `reorder-button.tsx` | `POST /api/orders/[id]/reorder` | toast with added/limited, `router.refresh()` |
-| `chat-widget.tsx` | `POST /api/assistant` | replace pending message with the response |
+| `chat-widget.tsx` | `POST /api/assistant` | stream tool calls and text into the pending message; replace it with the final response |
 
 `product-purchase.tsx` does not call an API for buy-now; it routes to
 `/checkout?buy=<id>&qty=<n>`, which posts the order later.

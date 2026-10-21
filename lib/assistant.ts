@@ -27,6 +27,20 @@ export type AssistantResponse = {
   source: "agent" | "catalog";
 };
 
+export type AssistantStreamEvent =
+  | { type: "text"; text: string }
+  | { type: "tool-call"; id: string; name: string; input: unknown }
+  | { type: "tool-result"; id: string; status: "done" | "error" }
+  | { type: "done"; response: AssistantResponse }
+  | { type: "error"; message: string };
+
+export type AssistantToolCall = {
+  id: string;
+  name: string;
+  input?: unknown;
+  status: "running" | "done" | "error";
+};
+
 const CATEGORY_NAMES = CATEGORIES.map((category) => category.toLowerCase());
 const CATEGORY_LIST =
   CATEGORY_NAMES.length > 1

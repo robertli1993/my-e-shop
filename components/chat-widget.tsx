@@ -4,7 +4,11 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import { Send, Sparkles, X } from "lucide-react";
 import { ChatMessage } from "@/components/chat-widget-views";
-import type { AssistantResponse } from "@/lib/assistant";
+import type {
+  AssistantResponse,
+  AssistantStreamEvent,
+  AssistantToolCall,
+} from "@/lib/assistant";
 import { OPEN_GUIDE_EVENT } from "@/components/chat-events";
 
 type Message = {
@@ -12,8 +16,63 @@ type Message = {
   role: "user" | "bot";
   text?: string;
   response?: AssistantResponse;
+  toolCalls?: AssistantToolCall[];
   pending?: boolean;
 };
+
+async function readAssistantStream(
+  body: ReadableStream<Uint8Array>,
+  handlers: {
+    onText: (text: string) => void;
+    onToolCall: (call: Omit<AssistantToolCall, "status">) => void;
+    onToolResult: (id: string, status: AssistantToolCall["status"]) => void;
+  },
+): Promise<AssistantResponse> {
+  const reader = body.getReader();
+  const decoder = new TextDecoder();
+  const outcome: { response?: AssistantResponse; error?: string } = {};
+  let buffer = "";
+  let streamed = "";
+
+  const handleLine = (line: string) => {
+    if (!line.trim()) return;
+    const event = JSON.parse(line) as AssistantStreamEvent;
+    if (event.type === "text") {
+      streamed += event.text;
+      handlers.onText(streamed);
+    } else if (event.type === "tool-call") {
+      handlers.onToolCall({ id: event.id, name: event.name, input: event.input });
+    } else if (event.type === "tool-result") {
+      handlers.onToolResult(event.id, event.status);
+    } else if (event.type === "done") {
+      outcome.response = event.response;
+    } else if (event.type === "error") {
+      outcome.error = event.message;
+    }
+  };
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      let newline = buffer.indexOf("\n");
+      while (newline !== -1) {
+        handleLine(buffer.slice(0, newline));
+        buffer = buffer.slice(newline + 1);
+        newline = buffer.indexOf("\n");
+      }
+    }
+    buffer += decoder.decode();
+    if (buffer) handleLine(buffer);
+  } finally {
+    reader.releaseLock();
+  }
+
+  if (outcome.error) throw new Error(outcome.error);
+  if (!outcome.response) throw new Error("The guide could not answer that. Please try again.");
+  return outcome.response;
+}
 
 const SUGGESTIONS = [
   { label: "Laptops under $1,500", prompt: "Laptops under $1,500" },
@@ -78,16 +137,56 @@ export function ChatWidget() {
       try {
         const response = await fetch("/api/assistant", {
           method: "POST",
-          headers: { "content-type": "application/json" },
+          headers: { "content-type": "application/json", accept: "application/x-ndjson" },
           body: JSON.stringify({ query: text }),
         });
-        const payload = (await response.json()) as AssistantResponse & { error?: string };
-        if (!response.ok) throw new Error(payload.error ?? "The guide could not answer that.");
+        if (!response.ok) {
+          const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+          throw new Error(payload?.error ?? "The guide could not answer that.");
+        }
+        if (!response.body) throw new Error("The guide could not answer that. Please try again.");
+
+        const payload = await readAssistantStream(response.body, {
+          onText(streamed) {
+            setMessages((current) =>
+              current.map((message) =>
+                message.id === pendingId ? { ...message, text: streamed } : message,
+              ),
+            );
+          },
+          onToolCall(call) {
+            setMessages((current) =>
+              current.map((message) => {
+                if (message.id !== pendingId) return message;
+                const toolCalls = message.toolCalls ?? [];
+                if (toolCalls.some((item) => item.id === call.id)) return message;
+                return {
+                  ...message,
+                  toolCalls: [...toolCalls, { ...call, status: "running" }],
+                };
+              }),
+            );
+          },
+          onToolResult(id, status) {
+            setMessages((current) =>
+              current.map((message) =>
+                message.id === pendingId
+                  ? {
+                      ...message,
+                      toolCalls: (message.toolCalls ?? []).map((call) =>
+                        call.id === id ? { ...call, status } : call,
+                      ),
+                    }
+                  : message,
+              ),
+            );
+          },
+        });
 
         setMessages((current) =>
           current.map((message) =>
             message.id === pendingId
-              ? { id: pendingId, role: "bot", response: payload }
+              ? { ...message, pending: false, text: undefined, response: payload }
               : message,
           ),
         );
@@ -96,8 +195,8 @@ export function ChatWidget() {
           current.map((message) =>
             message.id === pendingId
               ? {
-                  id: pendingId,
-                  role: "bot",
+                  ...message,
+                  pending: false,
                   text:
                     error instanceof Error
                       ? error.message

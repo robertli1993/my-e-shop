@@ -1426,6 +1426,42 @@
     animation-delay: 240ms;
   }
 
+  .chat-tools {
+    @apply mb-2 space-y-1 border-b pb-2;
+  }
+
+  .chat-tool {
+    @apply flex items-start gap-1.5 text-[11px] leading-snug text-muted-foreground;
+  }
+
+  .chat-tool-dot {
+    @apply mt-1 size-1.5 shrink-0 rounded-full bg-muted-foreground/40;
+  }
+
+  .chat-tool.is-running .chat-tool-dot {
+    @apply animate-pulse bg-primary;
+  }
+
+  .chat-tool.is-done .chat-tool-dot {
+    @apply bg-emerald-500;
+  }
+
+  .chat-tool.is-error .chat-tool-dot {
+    @apply bg-destructive;
+  }
+
+  .chat-tool-copy {
+    @apply min-w-0 break-words;
+  }
+
+  .chat-tool-copy code {
+    @apply font-mono text-[10px] font-medium text-foreground;
+  }
+
+  .chat-tool-args {
+    @apply text-[10px];
+  }
+
   .chat-products {
     @apply mt-2 flex flex-col gap-1.5;
   }
