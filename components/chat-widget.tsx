@@ -15,6 +15,7 @@ type Message = {
   id: number;
   role: "user" | "bot";
   text?: string;
+  reasoning?: string;
   response?: AssistantResponse;
   toolCalls?: AssistantToolCall[];
   pending?: boolean;
@@ -23,6 +24,7 @@ type Message = {
 async function readAssistantStream(
   body: ReadableStream<Uint8Array>,
   handlers: {
+    onReasoning: (text: string) => void;
     onText: (text: string) => void;
     onToolCall: (call: Omit<AssistantToolCall, "status">) => void;
     onToolResult: (id: string, status: AssistantToolCall["status"]) => void;
@@ -33,11 +35,18 @@ async function readAssistantStream(
   const outcome: { response?: AssistantResponse; error?: string } = {};
   let buffer = "";
   let streamed = "";
+  let reasoning = "";
 
   const handleLine = (line: string) => {
     if (!line.trim()) return;
     const event = JSON.parse(line) as AssistantStreamEvent;
-    if (event.type === "text") {
+    if (event.type === "reasoning") {
+      reasoning += event.text;
+      handlers.onReasoning(reasoning);
+    } else if (event.type === "reasoning-reset") {
+      reasoning = "";
+      handlers.onReasoning("");
+    } else if (event.type === "text") {
       streamed += event.text;
       handlers.onText(streamed);
     } else if (event.type === "tool-call") {
@@ -147,6 +156,13 @@ export function ChatWidget() {
         if (!response.body) throw new Error("The guide could not answer that. Please try again.");
 
         const payload = await readAssistantStream(response.body, {
+          onReasoning(reasoning) {
+            setMessages((current) =>
+              current.map((message) =>
+                message.id === pendingId ? { ...message, reasoning } : message,
+              ),
+            );
+          },
           onText(streamed) {
             setMessages((current) =>
               current.map((message) =>
@@ -197,6 +213,7 @@ export function ChatWidget() {
               ? {
                   ...message,
                   pending: false,
+                  reasoning: undefined,
                   text:
                     error instanceof Error
                       ? error.message

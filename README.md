@@ -39,8 +39,9 @@ The guide is a Vercel AI SDK `ToolLoopAgent`. It receives read-only tools for ca
 search, product lookup, categories, the signed-in user's bag and order history. Product
 tool results are returned to the page and rendered as product cards under the reply. The
 agent validates every recommendation against the live catalog, so it cannot invent
-products, prices or categories. Without `OPENDESIGN_API_KEY`, the endpoint uses a
-deterministic catalog search so the rest of the shop keeps working.
+products, prices or categories. When the model emits reasoning, the guide streams it into a
+collapsible thinking block before the answer. Without `OPENDESIGN_API_KEY`, the endpoint uses
+a deterministic catalog search so the rest of the shop keeps working.
 
 ## Product CLI
 

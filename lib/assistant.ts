@@ -28,6 +28,8 @@ export type AssistantResponse = {
 };
 
 export type AssistantStreamEvent =
+  | { type: "reasoning"; text: string }
+  | { type: "reasoning-reset" }
   | { type: "text"; text: string }
   | { type: "tool-call"; id: string; name: string; input: unknown }
   | { type: "tool-result"; id: string; status: "done" | "error" }

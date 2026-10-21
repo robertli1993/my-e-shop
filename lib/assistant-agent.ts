@@ -406,6 +406,7 @@ export async function streamAssistantReply(
       const toolResults: ToolResult[] = [];
       const pendingToolCalls = new Set<string>();
       let text = "";
+      let reasoningSeen = false;
       let closed = false;
 
       const send = (event: AssistantStreamEvent) => {
@@ -441,7 +442,10 @@ export async function streamAssistantReply(
         });
 
         for await (const part of result.stream) {
-          if (part.type === "text-delta") {
+          if (part.type === "reasoning-delta") {
+            reasoningSeen = true;
+            send({ type: "reasoning", text: part.text });
+          } else if (part.type === "text-delta") {
             text += part.text;
             send({ type: "text", text: part.text });
           } else if (part.type === "tool-call") {
@@ -472,6 +476,7 @@ export async function streamAssistantReply(
           error instanceof Error ? error.message : error,
         );
         failPendingToolCalls();
+        if (reasoningSeen) send({ type: "reasoning-reset" });
         try {
           send({ type: "done", response: await buildFallbackReply(query, user) });
         } catch (fallbackError) {

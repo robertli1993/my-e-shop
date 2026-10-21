@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { ChevronRight, Sparkles } from "lucide-react";
@@ -11,10 +12,26 @@ type Message = {
   id: number;
   role: "user" | "bot";
   text?: string;
+  reasoning?: string;
   response?: AssistantResponse;
   toolCalls?: AssistantToolCall[];
   pending?: boolean;
 };
+
+function Reasoning({ text, live }: { text: string; live: boolean }) {
+  const [closed, setClosed] = useState(false);
+
+  return (
+    <details
+      className="chat-reasoning"
+      open={!closed}
+      onToggle={(event) => setClosed(!event.currentTarget.open)}
+    >
+      <summary>{live ? "Thinking…" : "Thoughts"}</summary>
+      <div className="chat-reasoning-text">{text}</div>
+    </details>
+  );
+}
 
 function toolSummary(input: unknown): string {
   if (!input || typeof input !== "object" || Array.isArray(input)) return "";
@@ -47,7 +64,7 @@ export function ChatMessage({
     <div
       className="chat-msg is-bot"
       aria-label={
-        message.pending && !message.text && !message.toolCalls?.length
+        message.pending && !message.text && !message.reasoning && !message.toolCalls?.length
           ? "Guide is working"
           : undefined
       }
@@ -56,12 +73,19 @@ export function ChatMessage({
         <Sparkles className="icon-sm" strokeWidth={1.75} />
       </span>
       <div className="chat-bubble">
-        {message.pending && !message.text && !message.toolCalls?.length ? (
+        {message.pending && !message.text && !message.reasoning && !message.toolCalls?.length ? (
           <span className="chat-typing" aria-hidden="true">
             <span />
             <span />
             <span />
           </span>
+        ) : null}
+
+        {message.reasoning ? (
+          <Reasoning
+            text={message.reasoning}
+            live={Boolean(message.pending && !message.response)}
+          />
         ) : null}
 
         {message.toolCalls?.length ? (

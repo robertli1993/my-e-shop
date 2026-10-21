@@ -434,10 +434,11 @@ deleted or are out of stock and returns `{ added, limited }`.
 - Without a key, or on any agent failure: deterministic intent routing and catalog search in
   `lib/assistant.ts`.
 
-The route returns an `application/x-ndjson` stream of `tool-call`, `tool-result`, `text` and
-`done` events. It projects **tool results** into the final response’s `products` and `orders`
-arrays; model text cannot inject a product card. The widget renders the tool trace and appends
-text deltas as they arrive. See [ai-assistant.md](./ai-assistant.md).
+The route returns an `application/x-ndjson` stream of `reasoning`, `reasoning-reset`,
+`tool-call`, `tool-result`, `text` and `done` events. It projects **tool results** into the
+final response’s `products` and `orders` arrays; model text cannot inject a product card. The
+widget renders the tool trace and appends reasoning/text deltas as they arrive. See
+[ai-assistant.md](./ai-assistant.md).
 
 ### 9.6 Catalog CLI
 

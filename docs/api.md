@@ -341,6 +341,7 @@ Body (`assistantSchema`): `{ "query": "laptops under $1,500" }` — trimmed, 1�
 Success `200` returns an `application/x-ndjson` stream: one JSON event per line.
 
 ```json
+{"type":"reasoning","text":"The user wants laptops under $1,500."}
 {"type":"tool-call","id":"call_…","name":"search_products","input":{"query":"laptops","maxPrice":1500}}
 {"type":"tool-result","id":"call_…","status":"done"}
 {"type":"text","text":"Two"}
@@ -352,11 +353,17 @@ Event contract (`AssistantStreamEvent` in `lib/assistant.ts`):
 
 | Type | Fields | Meaning |
 | --- | --- | --- |
+| `reasoning` | `text` | A reasoning/thinking delta; concatenate in arrival order |
+| `reasoning-reset` | none | Discard reasoning already sent (emitted when the stream falls back) |
 | `tool-call` | `id`, `name`, `input` | A model-requested tool call is starting |
 | `tool-result` | `id`, `status` (`done` / `error`) | That tool call completed |
 | `text` | `text` | A reply delta; concatenate in arrival order |
 | `done` | `response` | Final `AssistantResponse`, including projected cards/actions |
 | `error` | `message` | The stream could not produce a response |
+
+Reasoning deltas are optional: the deterministic fallback never emits them, and a
+non-reasoning model produces none. They may arrive before or between tool calls and text.
+The widget shows them in a collapsible `Thinking…` block.
 
 `done.response` has the existing `AssistantResponse` shape:
 
@@ -390,7 +397,8 @@ four, order cards at three. See [ai-assistant.md](./ai-assistant.md).
 | 500 | Invalid JSON or unexpected failure before streaming starts (JSON error envelope) |
 
 Agent failures after the stream starts do **not** produce a 500: `streamAssistantReply`
-emits a fallback `done` response and the client replaces any partial text.
+emits a `reasoning-reset` if reasoning was already sent, then a fallback `done` response.
+The client replaces any partial text and reasoning with the fallback response.
 
 ## 8. Client call sites
 

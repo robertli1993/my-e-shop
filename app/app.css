@@ -1426,8 +1426,24 @@
     animation-delay: 240ms;
   }
 
+  .chat-reasoning {
+    @apply mb-2 rounded-lg border border-border/60 bg-background/60 px-2 py-1.5;
+  }
+
+  .chat-reasoning summary {
+    @apply cursor-pointer select-none text-[11px] font-medium text-muted-foreground;
+  }
+
+  .chat-reasoning[open] summary {
+    @apply mb-1;
+  }
+
+  .chat-reasoning-text {
+    @apply max-h-36 overflow-y-auto whitespace-pre-wrap break-words font-mono text-[10px] leading-relaxed text-muted-foreground;
+  }
+
   .chat-tools {
-    @apply mb-2 space-y-1 border-b pb-2;
+    @apply mb-2 space-y-1 pb-2;
   }
 
   .chat-tool {

@@ -39,6 +39,8 @@ Both modes emit the same event contract, so the widget does not branch on mode. 
 
 ```ts
 type AssistantStreamEvent =
+  | { type: "reasoning"; text: string }
+  | { type: "reasoning-reset" }
   | { type: "text"; text: string }
   | { type: "tool-call"; id: string; name: string; input: unknown }
   | { type: "tool-result"; id: string; status: "done" | "error" }
@@ -46,10 +48,10 @@ type AssistantStreamEvent =
   | { type: "error"; message: string };
 ```
 
-Ordering: a `tool-call` precedes its matching `tool-result`; `text` deltas arrive as
-the model produces them; exactly one `done` closes a successful stream. A provider or
-timeout failure emits `tool-result` errors for still-running calls, then a fallback
-`done`. The final response is:
+Ordering: a `tool-call` precedes its matching `tool-result`; `reasoning` and `text`
+deltas arrive as the model produces them; exactly one `done` closes a successful stream.
+A provider or timeout failure emits `tool-result` errors for still-running calls,
+`reasoning-reset` if reasoning was streamed, then a fallback `done`. The final response is:
 
 ```ts
 type AssistantResponse = {
@@ -66,9 +68,11 @@ type AssistantResponse = {
 `Product` and `OrderSummary` are the same DTOs used by the storefront
 (`lib/types.ts`). While the stream runs the widget:
 
+- appends `reasoning` deltas to a collapsible `Thinking…` block,
 - appends `text` deltas to the pending bot bubble,
 - renders each `tool-call` as a compact trace row (`search_products` plus its input),
-- marks the row done/error from `tool-result`.
+- marks the row done/error from `tool-result`,
+- clears the thinking block on `reasoning-reset`.
 
 On `done` it replaces the partial text with `response.reply` and renders:
 
@@ -147,8 +151,8 @@ Account tools return `signedIn: false` rather than throwing when there is no ses
 ### 3.4 Projection into the response
 
 The route does **not** trust the model to assemble cards. It consumes `result.stream`,
-forwards `text-delta`, `tool-call` and `tool-result` events, and collects completed
-`tool-result` parts. It then builds maps from those results:
+forwards `reasoning-delta`, `text-delta`, `tool-call` and `tool-result` events, and collects
+completed `tool-result` parts. It then builds maps from those results:
 
 | Tool result | Effect |
 | --- | --- |
@@ -193,8 +197,9 @@ Triggered when:
 - an error occurs while projecting results.
 
 The catch logs `console.warn("Tech guide agent request failed", message)`, marks still-running
-tool calls as `error`, and emits a fallback `done` from `buildFallbackReply(query, user)`.
-Partial text already sent is replaced by the client when `done` arrives.
+tool calls as `error`, emits `reasoning-reset` if any reasoning was already sent, and emits a
+fallback `done` from `buildFallbackReply(query, user)`. Partial text is replaced by the client
+when `done` arrives; the reset clears partial reasoning.
 
 ### 4.1 Intent routing
 
@@ -318,10 +323,12 @@ There is no app-level retry or token accounting. The 25 s abort covers the whole
 
 ## 8. Client integration
 
-- `chat-widget.tsx` holds messages in local state (`id`, role, text/response, toolCalls,
-  pending). It posts `{ query }`, reads the NDJSON stream, appends `text` deltas, updates the
-  tool trace from `tool-call`/`tool-result`, and replaces the pending message with the
-  `done.response`.
+- `chat-widget.tsx` holds messages in local state (`id`, role, text/reasoning/response,
+  toolCalls, pending). It posts `{ query }`, reads the NDJSON stream, appends `text` and
+  `reasoning` deltas, updates the tool trace from `tool-call`/`tool-result`, and replaces the
+  pending message with the `done.response`.
+- `chat-widget-views.tsx` renders reasoning in a collapsible block that starts open and can
+  be collapsed by the user.
 - A refresh loses the conversation; nothing is stored server-side.
 - `components/chat-events.ts` defines `northline:open-guide`. `GuideButton` dispatches it
   with an optional query; the widget opens and sends that query immediately.
