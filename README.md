@@ -86,6 +86,17 @@ paths use conditional `UPDATE ... WHERE stock >= qty` statements inside a transa
 concurrent checkouts cannot drive stock below zero. The order id sequence is generated
 atomically from a counters table.
 
+## Architecture documentation
+
+The implementation reference lives in [`docs/`](./docs/README.md):
+
+- [Architecture](./docs/architecture.md) — runtime topology, module boundaries, rendering
+  and caching, request lifecycles, security, deployment, decisions and limitations.
+- [Data model](./docs/data-model.md) — schema, relationships, invariants and transactional
+  flows.
+- [HTTP API](./docs/api.md) — route contracts, payloads and status codes.
+- [AI guide](./docs/ai-assistant.md) — agent tools, fallback behaviour and guardrails.
+
 ## Scripts and checks
 
 ```bash
