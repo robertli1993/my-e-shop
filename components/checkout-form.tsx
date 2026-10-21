@@ -225,9 +225,9 @@ export function CheckoutForm({
       <section className="form-card">
         <h2>Payment</h2>
         <label className="pay-option">
-          <input type="radio" name="payment" value="demo" defaultChecked />
+          <input type="radio" name="payment" value="none" defaultChecked />
           <span>
-            <strong>Demo payment</strong>
+            <strong>No payment required</strong>
             <small>
               No card is charged. This storefront never asks for payment details.
             </small>
@@ -243,7 +243,7 @@ export function CheckoutForm({
           </span>
         </button>
         <p className="tiny">
-          By placing this order you agree to the demo store&rsquo;s imaginary terms.
+          By placing this order you agree to the store&rsquo;s terms.
         </p>
       </div>
     </form>

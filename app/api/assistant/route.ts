@@ -1,6 +1,6 @@
 import { jsonError, readJson } from "@/lib/api";
 import { getSessionUser } from "@/lib/auth/session";
-import { buildAssistantReply } from "@/lib/assistant";
+import { buildAssistantReply } from "@/lib/assistant-agent";
 import { assistantSchema, fieldErrors } from "@/lib/validation";
 
 export async function POST(request: Request) {

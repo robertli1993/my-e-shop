@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { X } from "lucide-react";
 
-export function DemoNotesButton() {
+export function StoreNotesButton() {
   const [open, setOpen] = useState(false);
 
   return (
@@ -18,7 +18,7 @@ export function DemoNotesButton() {
         </button>
         <DialogTitle className="modal-heading">How this store works</DialogTitle>
         <DialogDescription className="modal-sub">
-          A Next.js storefront with a SQLite database, Drizzle ORM and server-side sessions.
+          A Next.js storefront with an embedded database, Drizzle ORM and server-side sessions.
         </DialogDescription>
         <div className="modal-body">
           <div className="account-block">
@@ -27,7 +27,7 @@ export function DemoNotesButton() {
             browser beyond an httpOnly session cookie.
           </div>
           <div className="account-block">
-            Placing an order decrements stock inside a SQLite transaction with a guarded update, so
+            Placing an order decrements stock inside a database transaction with a guarded update, so
             two concurrent checkouts cannot oversell the last unit. Cancelling before dispatch
             restores every item.
           </div>

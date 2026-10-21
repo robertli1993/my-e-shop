@@ -67,7 +67,7 @@ export default async function HomePage({
               </span>
               <span>
                 <ShieldCheck className="icon-sm" strokeWidth={1.75} aria-hidden="true" />
-                Demo checkout
+                No-card checkout
               </span>
             </div>
           </div>
@@ -139,14 +139,14 @@ export default async function HomePage({
             <ShieldCheck className="icon" strokeWidth={1.75} aria-hidden="true" />
             <div>
               <h3>Orders that persist</h3>
-              <p>Your account, bag and order history live in SQLite, not in this tab.</p>
+              <p>Your account, bag and order history live in your account, not in this tab.</p>
             </div>
           </div>
           <div className="value-item">
             <Truck className="icon" strokeWidth={1.75} aria-hidden="true" />
             <div>
               <h3>One honest checkout</h3>
-              <p>A demo checkout — no card is charged and no payment details are requested.</p>
+              <p>A no-card checkout — no payment is charged and no payment details are requested.</p>
             </div>
           </div>
         </div>

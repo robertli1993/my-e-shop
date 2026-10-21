@@ -72,7 +72,7 @@ export default async function SignInPage({
                 </form>
               </div>
               <p className="auth-note">
-                Your bag and orders are tied to this demo account in the local database.
+                Your bag and orders are tied to this account in the local database.
               </p>
             </div>
           </div>

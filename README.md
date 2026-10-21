@@ -1,7 +1,7 @@
 # Northline — everyday tech store
 
-A demo-ready electronics shop built with Next.js App Router (frontend and API routes),
-SQLite, Drizzle ORM, Tailwind CSS and shadcn/ui components. The visual design follows
+A production-shaped electronics shop built with Next.js App Router (frontend and API
+routes), Drizzle ORM, Tailwind CSS and shadcn/ui components. The visual design follows
 `reference/index.html`.
 
 ## Run it
@@ -15,15 +15,14 @@ Open [http://localhost:3000](http://localhost:3000). The first boot creates
 `data/northline.db`, applies the schema and loads the eighteen-product catalog plus four
 sample orders.
 
-Demo account:
+Sample account:
 
 ```
-demo@northline.co
-demo1234
+alex@northline.co
+northline123
 ```
 
-New accounts can sign up from `/signup`. A cart and every order are persisted in SQLite
-per user.
+New accounts can sign up from `/signup`. A cart and every order are persisted per user.
 
 ## Environment
 
@@ -31,13 +30,17 @@ Copy `.env.example` to `.env.local` only if you want to override defaults:
 
 | Variable | Purpose |
 | --- | --- |
-| `DATABASE_PATH` | SQLite file path (default `data/northline.db`) |
-| `OPENDESIGN_API_KEY` | Enables the LLM-backed shopping assistant |
+| `DATABASE_PATH` | Database file path (default `data/northline.db`) |
+| `OPENDESIGN_API_KEY` | Enables the AI shopping agent |
 | `OPENDESIGN_API_URL` | OpenAI-compatible endpoint (default `https://amr-link.open-design.ai/v1`) |
 | `OPENDESIGN_MODEL` | Model name (default `deepseek-v4.1-flash`) |
 
-Without `OPENDESIGN_API_KEY` the assistant falls back to deterministic intent and
-catalog rules, so search, budgets, categories and bag/order questions keep working.
+The guide is a Vercel AI SDK `ToolLoopAgent`. It receives read-only tools for catalog
+search, product lookup, categories, the signed-in user's bag and order history. Product
+tool results are returned to the page and rendered as product cards under the reply. The
+agent validates every recommendation against the live catalog, so it cannot invent
+products, prices or categories. Without `OPENDESIGN_API_KEY`, the endpoint uses a
+deterministic catalog search so the rest of the shop keeps working.
 
 ## Product CLI
 
@@ -70,14 +73,14 @@ orders.
 - `/orders` — all orders with status and totals; filter by status.
 - `/orders/[id]` — items, shipping address, payment note, status and cancellation.
   Cancelling a `Processing` or `Packed` order restores every item's stock exactly once.
-- `/api/assistant` — the guide. It asks the configured model to turn a natural-language
-  query into filters, validates those filters against the categories and catalog, and
-  only returns products that actually exist. It does not invent prices or products.
+- `/api/assistant` — the guide. It asks the configured model to call catalog and account
+  tools, then extracts the tool results for display. Only products returned by those
+  tools are shown in the chat.
 
 ## Inventory and states
 
 Orders begin as `Processing`. They can be cancelled before shipping (`Processing` or
-`Packed`); cancellation is a single SQLite transaction that changes the order once and
+`Packed`); cancellation is a single database transaction that changes the order once and
 returns each item to stock. Stock is only reserved when an order is placed. Both checkout
 paths use conditional `UPDATE ... WHERE stock >= qty` statements inside a transaction, so
 concurrent checkouts cannot drive stock below zero. The order id sequence is generated
@@ -91,6 +94,6 @@ npx tsc --noEmit
 npm run build
 ```
 
-Delete `data/northline.db` while the server is stopped to reset the demo database; it
+Delete `data/northline.db` while the server is stopped to reset the local database; it
 will be re-seeded on the next boot. Remove any leftover `-wal`/`-shm` sidecars from an
 older run as well.

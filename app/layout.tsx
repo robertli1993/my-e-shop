@@ -13,7 +13,7 @@ export const instant = false;
 export const metadata: Metadata = {
   title: "Northline — Everyday Tech",
   description:
-    "Northline is a demo electronics store: browse phones, computers, audio and gaming gear, sign in, build a bag, check out, and track orders.",
+    "Northline is an electronics store: browse phones, computers, audio and gaming gear, sign in, build a bag, check out, and track orders.",
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {

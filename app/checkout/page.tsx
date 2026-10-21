@@ -123,7 +123,7 @@ export default async function CheckoutPage({
             totalCents={totals.totalCents}
             footer={
               <p className="summary-note">
-                Stock is reserved when you place the order. Payment is demo-only.
+                Stock is reserved when you place the order. No payment is collected.
               </p>
             }
           />

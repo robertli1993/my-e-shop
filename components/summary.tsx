@@ -73,7 +73,7 @@ export function Summary({
           <path d="M12 3.5 19 6v5.5c0 4.2-2.9 7.4-7 9-4.1-1.6-7-4.8-7-9V6l7-2.5Z" />
           <path d="m9 12 2 2 4-4" />
         </svg>
-        Demo checkout. No payment is processed.
+        No-card checkout. No payment is processed.
       </p>
       {tail}
     </Card>
@@ -143,7 +143,7 @@ export function AuthRequired({
           Create account
         </Link>
       </div>
-      <p className="tiny muted">A demo account is ready if you just want to look around.</p>
+      <p className="tiny muted">A sample account is ready if you just want to look around.</p>
     </EmptyState>
   );
 }

@@ -1,6 +1,6 @@
 import type Database from "better-sqlite3";
 import { hashPassword } from "@/lib/auth/password";
-import { DEMO_ACCOUNT, DEMO_ORDERS, SEED_PRODUCTS } from "./seed-data";
+import { SAMPLE_ACCOUNT, SAMPLE_ORDERS, SEED_PRODUCTS } from "./seed-data";
 
 const FLOW = ["Processing", "Packed", "Shipped", "Delivered"] as const;
 
@@ -159,17 +159,17 @@ function seed(sqlite: Database.Database) {
     );
   });
 
-  const demoUserId = "u-demo";
+  const sampleUserId = SAMPLE_ACCOUNT.id;
   insertUser.run(
-    demoUserId,
-    DEMO_ACCOUNT.name,
-    DEMO_ACCOUNT.email,
-    hashPassword(DEMO_ACCOUNT.password),
+    sampleUserId,
+    SAMPLE_ACCOUNT.name,
+    SAMPLE_ACCOUNT.email,
+    hashPassword(SAMPLE_ACCOUNT.password),
     iso(now - 42 * 86_400_000),
   );
 
   const address = {
-    fullName: DEMO_ACCOUNT.name,
+    fullName: SAMPLE_ACCOUNT.name,
     line1: "88 Pine Street",
     line2: "Apt 4B",
     city: "Seattle",
@@ -178,7 +178,7 @@ function seed(sqlite: Database.Database) {
     country: "United States",
   };
 
-  for (const order of DEMO_ORDERS) {
+  for (const order of SAMPLE_ORDERS) {
     const lineItems = order.items.map(([productId, qty]) => {
       const product = productById.get(productId);
       if (!product) throw new Error(`Seed order references unknown product ${productId}`);
@@ -193,7 +193,7 @@ function seed(sqlite: Database.Database) {
 
     insertOrder.run(
       order.id,
-      demoUserId,
+      sampleUserId,
       order.status,
       subtotalCents,
       totals.shippingCents,

@@ -87,7 +87,7 @@ export default async function ProductPage({
                 {state.label}
               </span>
               <span aria-hidden="true">·</span>
-              <span>Ships from the demo warehouse</span>
+              <span>Ships from the Northline warehouse</span>
             </p>
 
             <ProductPurchase
@@ -103,7 +103,7 @@ export default async function ProductPage({
               </span>
               <span>
                 <Check className="icon-sm" strokeWidth={1.75} aria-hidden="true" />
-                Demo checkout
+                No-card checkout
               </span>
               <span>
                 <Check className="icon-sm" strokeWidth={1.75} aria-hidden="true" />

@@ -108,7 +108,7 @@ export function SignUpForm({
           <span className="btn-label">{busy ? "Creating account…" : "Create account"}</span>
         </button>
       </form>
-      <p className="auth-demo">
+      <p className="auth-sample">
         Already have an account?{" "}
         <Link href={authHref("/signin", nextPath, pendingAdd)}>Sign in</Link>
       </p>

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { DemoNotesButton } from "@/components/demo-notes-button";
+import { StoreNotesButton } from "@/components/store-notes-button";
 import { CATEGORIES } from "@/lib/catalog";
 
 export function SiteFooter() {
@@ -13,7 +13,7 @@ export function SiteFooter() {
             </span>
             <p>
               Everyday tech for work, play and everything between. Northline is a fictional
-              electronics store built as an interactive product demo.
+              electronics store built as an interactive storefront.
             </p>
           </div>
           <div className="footer-col">
@@ -41,10 +41,10 @@ export function SiteFooter() {
             </ul>
           </div>
           <div className="footer-col">
-            <h3>About this demo</h3>
+            <h3>About this store</h3>
             <ul>
               <li>
-                <DemoNotesButton />
+                <StoreNotesButton />
               </li>
               <li>
                 <Link href="/signin">Account &amp; orders</Link>
@@ -53,7 +53,7 @@ export function SiteFooter() {
           </div>
         </div>
         <div className="footer-bottom">
-          <span>© 2026 Northline. Demo storefront, not a real retailer.</span>
+          <span>© 2026 Northline. Independent storefront concept.</span>
           <span>
             Prices in USD. Inventory is simulated. Photography via Unsplash; product names and
             pricing are illustrative.

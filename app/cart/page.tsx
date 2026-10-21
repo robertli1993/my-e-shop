@@ -91,7 +91,7 @@ export default async function CartPage() {
                     <ArrowRight className="icon-sm" strokeWidth={1.75} aria-hidden="true" />
                   </Link>
                   <p className="summary-note">
-                    Shipping is free over $150. Tax is estimated at 8% for this demo. Bag total{" "}
+                    Shipping is free over $150. Tax is estimated at 8%. Bag total{" "}
                     {formatMoney(totals.totalCents)}.
                   </p>
                 </>

@@ -31,7 +31,7 @@ export function AuthAside() {
           </ul>
         </div>
         <p className="auth-aside-foot">
-          Northline is a demo storefront. Accounts, bags and orders live in the local database, and
+          Northline is an independent storefront. Accounts, bags and orders live in the local database, and
           payment is never collected.
         </p>
       </div>

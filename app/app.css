@@ -1209,19 +1209,19 @@
     @apply h-px flex-1 bg-border;
   }
 
-  .auth-demo-btn {
+  .auth-sample-btn {
     @apply w-full;
   }
 
-  .auth-demo-copy {
+  .auth-sample-copy {
     @apply mt-2 text-center text-[11px] leading-relaxed text-muted-foreground;
   }
 
-  .auth-demo {
+  .auth-sample {
     @apply mt-4 flex flex-wrap justify-center gap-1 text-xs text-muted-foreground;
   }
 
-  .auth-demo a {
+  .auth-sample a {
     @apply font-medium text-primary hover:underline;
   }
 

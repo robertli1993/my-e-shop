@@ -524,13 +524,14 @@ export const SEED_PRODUCTS: SeedProduct[] = [
   },
 ];
 
-export const DEMO_ACCOUNT = {
+export const SAMPLE_ACCOUNT = {
+  id: "u-sample",
   name: "Alex Rivera",
-  email: "demo@northline.co",
-  password: "demo1234",
+  email: "alex@northline.co",
+  password: "northline123",
 };
 
-export const DEMO_ORDERS = [
+export const SAMPLE_ORDERS = [
   {
     id: "NL-1051",
     daysAgo: 0,

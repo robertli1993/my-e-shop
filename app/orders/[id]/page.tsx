@@ -189,7 +189,7 @@ export default async function OrderPage({
                 {address.country}
               </p>
               <p className="cancel-note">
-                Placed {formatDateTime(order.createdAt)}. Payment: demo, not charged.
+                Placed {formatDateTime(order.createdAt)}. Payment: not charged.
               </p>
             </section>
           </div>
@@ -218,8 +218,7 @@ export default async function OrderPage({
             <section className="detail-panel">
               <h2>Need anything?</h2>
               <p className="small muted" style={{ marginBottom: 12 }}>
-                This is a demo. There is no support inbox, but the tech guide can help you find a
-                replacement.
+                There is no support inbox, but the tech guide can help you find a replacement.
               </p>
               <GuideButton className="link-btn">
                 Ask the tech guide

@@ -67,9 +67,9 @@ export function SignInForm({
     }
   }
 
-  function useDemoAccount() {
-    setEmail("demo@northline.co");
-    setPassword("demo1234");
+  function useSampleAccount() {
+    setEmail("alex@northline.co");
+    setPassword("northline123");
     setError("");
   }
 
@@ -108,13 +108,13 @@ export function SignInForm({
       </form>
 
       <div className="auth-divider">or</div>
-      <button className="btn btn-secondary auth-demo-btn" type="button" onClick={useDemoAccount}>
-        Use the demo account
+      <button className="btn btn-secondary auth-sample-btn" type="button" onClick={useSampleAccount}>
+        Use the sample account
       </button>
-      <p className="auth-demo-copy">
-        Demo: demo@northline.co · demo1234. The demo account is seeded with sample orders.
+      <p className="auth-sample-copy">
+        Sample: alex@northline.co · northline123. The account is seeded with sample orders.
       </p>
-      <p className="auth-demo">
+      <p className="auth-sample">
         New to Northline?{" "}
         <Link href={authHref("/signup", nextPath, pendingAdd)}>Create an account</Link>
       </p>

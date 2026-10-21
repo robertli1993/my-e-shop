@@ -214,7 +214,7 @@ export function ChatWidget() {
             <Send className="icon" strokeWidth={1.75} />
           </button>
         </form>
-        <p className="chat-note">AI-assisted guide · live SQLite catalog · demo checkout</p>
+        <p className="chat-note">AI agent · live catalog · no-card checkout</p>
       </section>
 
       <button
