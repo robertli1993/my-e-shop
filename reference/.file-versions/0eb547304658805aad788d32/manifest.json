@@ -1,0 +1,67 @@
+{
+  "schemaVersion": 2,
+  "fileName": "index.html",
+  "currentVersionId": "ba1e51a3-e8a5-4142-9f44-e9c0ebc249d4",
+  "entries": [
+    {
+      "id": "0a0ddd5b-54e5-4b39-8bb3-d8f2a77d2bff",
+      "fileName": "index.html",
+      "version": 1,
+      "label": "Version 1",
+      "createdAt": 1792550841427,
+      "source": "ai",
+      "prompt": "Build a fully functional e-commerce website. The homepage displays a product\ncatalog (image, name, price) with search and category filters. Clicking a product\nopens its detail page. After sign-up/login, users can add items to cart, adjust\nquantities, and checkout to place an order — or buy directly from the detail page.\nA \"My Orders\" page lists all orders with full details (items, amount, shipping info,\nstatus). Data must be persisted with pre-loaded products. Teams define their own\norder state logic (e.g., how cancellation affects inventory) and keep frontend and\nbackend in sync. The full flow — Browse → Login → Add to Cart → Checkout →\nView Order — must be demo-ready.\n\nStretch Goals\nLLM Shopping Assistant: Convert natural language queries like \"camping gear\nunder ¥300\" into product filters — only recommend items that actually exist in\nthe catalog.\nConcurrency-Safe Inventory: Prevent overselling when multiple users order the\nsame item simultaneously.",
+      "size": 140668,
+      "mime": "text/html; charset=utf-8",
+      "kind": "html",
+      "contentPath": "0001-0a0ddd5b-54e5-4b39-8bb3-d8f2a77d2bff.html",
+      "promptSource": "message",
+      "contentDigest": "8808ac44c91d2c1ffaf57d897ffa2652b1298e20b85dc8b21f9ccb07fc7ffca1"
+    },
+    {
+      "id": "3cefeb0e-176b-400c-abaf-72041ebdd665",
+      "fileName": "index.html",
+      "version": 2,
+      "label": "Version 2",
+      "createdAt": 1792551900702,
+      "source": "ai",
+      "prompt": "Make the AI Assistance as a FAB, that when clicked, will pop up a assistance floating chat bot that help user to do their thigns\nCreate detail page for each product too. \nThe order should no be show in the Top nav directly. When use signed in, it should have a drop down when clicked the user name and show order there.\nPlease create better ui and more coverage",
+      "size": 180614,
+      "mime": "text/html; charset=utf-8",
+      "kind": "html",
+      "contentPath": "0002-3cefeb0e-176b-400c-abaf-72041ebdd665.html",
+      "promptSource": "message",
+      "contentDigest": "41aeaec2c0ec86394d04bd7ece5e5c76e4e03eff8945ea84a954da2ab6f22953"
+    },
+    {
+      "id": "1306b330-6f3b-4db3-a334-4b1045bb4127",
+      "fileName": "index.html",
+      "version": 3,
+      "label": "Version 3",
+      "createdAt": 1792552934987,
+      "source": "ai",
+      "prompt": "Please also make sign in function and sign in screens",
+      "size": 195469,
+      "mime": "text/html; charset=utf-8",
+      "kind": "html",
+      "contentPath": "0003-1306b330-6f3b-4db3-a334-4b1045bb4127.html",
+      "promptSource": "message",
+      "contentDigest": "d9a4237a8593437f422b88fe2533df5a1f39e600126f4bbe1e434655d0745250"
+    },
+    {
+      "id": "ba1e51a3-e8a5-4142-9f44-e9c0ebc249d4",
+      "fileName": "index.html",
+      "version": 4,
+      "label": "Version 4",
+      "createdAt": 1792553618569,
+      "source": "ai",
+      "prompt": "Please finish the sign in function, the my orders and shopping bag function.\nWhen ai panel is opened, clicking outside should close it",
+      "size": 198516,
+      "mime": "text/html; charset=utf-8",
+      "kind": "html",
+      "contentPath": "0004-ba1e51a3-e8a5-4142-9f44-e9c0ebc249d4.html",
+      "contentDigest": "e2fca731abc5c3a4bd12bee2ae02f8da071203aa0e7fffc53fc07d8361872c1c",
+      "promptSource": "message"
+    }
+  ]
+}
