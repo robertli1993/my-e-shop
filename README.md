@@ -1,36 +1,95 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Northline — everyday tech store
 
-## Getting Started
+A demo-ready electronics shop built with Next.js App Router (frontend and API routes),
+SQLite, Drizzle ORM, Tailwind CSS and shadcn/ui components. The visual design follows
+`reference/index.html`.
 
-First, run the development server:
+## Run it
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000). The first boot creates
+`data/northline.db`, applies the schema and loads the eighteen-product catalog plus four
+sample orders.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Demo account:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```
+demo@northline.co
+demo1234
+```
 
-## Learn More
+New accounts can sign up from `/signup`. A cart and every order are persisted in SQLite
+per user.
 
-To learn more about Next.js, take a look at the following resources:
+## Environment
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Copy `.env.example` to `.env.local` only if you want to override defaults:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+| Variable | Purpose |
+| --- | --- |
+| `DATABASE_PATH` | SQLite file path (default `data/northline.db`) |
+| `OPENDESIGN_API_KEY` | Enables the LLM-backed shopping assistant |
+| `OPENDESIGN_API_URL` | OpenAI-compatible endpoint (default `https://amr-link.open-design.ai/v1`) |
+| `OPENDESIGN_MODEL` | Model name (default `deepseek-v4.1-flash`) |
 
-## Deploy on Vercel
+Without `OPENDESIGN_API_KEY` the assistant falls back to deterministic intent and
+catalog rules, so search, budgets, categories and bag/order questions keep working.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Product CLI
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+There is intentionally no admin dashboard. Manage catalog rows from the terminal:
+
+```bash
+npm run products -- list
+npm run products -- show iphone-15-pro
+npm run products -- add --name "Studio Dock" --category Accessories --price 129 --stock 10 \
+  --image /assets/tech/xiaomi-power-bank.jpg --tagline "A compact USB-C hub" --tags "dock,hub,usb-c"
+npm run products -- update --id studio-dock --price 119 --stock 12
+npm run products -- delete --id studio-dock
+```
+
+`add` accepts `--description`, `--specs "Weight:450 g|Fill:Down"`,
+`--highlights "Line one|Line two"`, `--in-box`, `--care` and `--alt` in addition to the
+required flags. Products deleted from the catalog keep their snapshots inside historical
+orders.
+
+## The flow
+
+- `/` — hero, search, category chips, sort, price filter and product grid. Filters are
+  kept in the URL so they are shareable.
+- `/product/[id]` — full detail, quantity stepper, add-to-bag and buy-now.
+- `/signin`, `/signup` — accounts. Unauthenticated add-to-bag/buy-now sends the user to
+  sign in and resumes the action afterwards.
+- `/cart` — quantity changes, removal and an order summary.
+- `/checkout` — shipping form and order placement. Cart checkout or direct buy-now both
+  decrement inventory and create an order.
+- `/orders` — all orders with status and totals; filter by status.
+- `/orders/[id]` — items, shipping address, payment note, status and cancellation.
+  Cancelling a `Processing` or `Packed` order restores every item's stock exactly once.
+- `/api/assistant` — the guide. It asks the configured model to turn a natural-language
+  query into filters, validates those filters against the categories and catalog, and
+  only returns products that actually exist. It does not invent prices or products.
+
+## Inventory and states
+
+Orders begin as `Processing`. They can be cancelled before shipping (`Processing` or
+`Packed`); cancellation is a single SQLite transaction that changes the order once and
+returns each item to stock. Stock is only reserved when an order is placed. Both checkout
+paths use conditional `UPDATE ... WHERE stock >= qty` statements inside a transaction, so
+concurrent checkouts cannot drive stock below zero. The order id sequence is generated
+atomically from a counters table.
+
+## Scripts and checks
+
+```bash
+npm run lint
+npx tsc --noEmit
+npm run build
+```
+
+Delete `data/northline.db` (and its `-wal`/`-shm` files) while the server is stopped to
+reset the demo database; it will be re-seeded on the next boot.

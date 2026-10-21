@@ -1,69 +1,165 @@
+import { io } from "next/cache";
 import Image from "next/image";
+import { ArrowRight, Package, ShieldCheck, Truck } from "lucide-react";
+import { CatalogBrowser } from "@/components/catalog-browser";
+import { GuideButton } from "@/components/guide-button";
+import { getSessionUser } from "@/lib/auth/session";
+import { CATEGORIES } from "@/lib/catalog";
+import { listProducts } from "@/lib/db/queries";
 
-export default function Home() {
+export const instant = false;
+
+export default async function HomePage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const params = await searchParams;
+  await io();
+
+  const products = listProducts();
+  const user = await getSessionUser();
+
+  const first = (value: string | string[] | undefined) =>
+    Array.isArray(value) ? value[0] : value;
+
+  const search = first(params.q)?.slice(0, 120) ?? "";
+  const categoryParam = first(params.category) ?? "all";
+  const category = (CATEGORIES as readonly string[]).includes(categoryParam)
+    ? categoryParam
+    : "all";
+  const sortParam = first(params.sort) ?? "featured";
+  const sort = ["featured", "price-asc", "price-desc", "name"].includes(sortParam)
+    ? sortParam
+    : "featured";
+
+  const minValue = Number(first(params.min));
+  const maxValue = Number(first(params.max));
+  const min = Number.isFinite(minValue) && minValue >= 0 ? minValue : null;
+  const max = Number.isFinite(maxValue) && maxValue >= 0 ? maxValue : null;
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+    <>
+      <section className="hero">
+        <div className="container hero-grid">
+          <div className="hero-copy">
+            <p className="eyebrow">The 2026 desk edit</p>
+            <h1>Tech that earns its place.</h1>
+            <p className="lead">
+              Phones, computers, audio and gaming gear — chosen for the desk, the commute and the
+              long way home.
+            </p>
+            <div className="hero-actions">
+              <a className="btn btn-primary" href="#catalog">
+                Shop the collection
+                <ArrowRight className="icon" strokeWidth={1.75} aria-hidden="true" />
+              </a>
+              <GuideButton className="btn btn-secondary">Ask the tech guide</GuideButton>
+            </div>
+            <div className="hero-facts">
+              <span>
+                <Package className="icon-sm" strokeWidth={1.75} aria-hidden="true" />
+                {products.length} tech essentials
+              </span>
+              <span>
+                <Truck className="icon-sm" strokeWidth={1.75} aria-hidden="true" />
+                Free shipping over $150
+              </span>
+              <span>
+                <ShieldCheck className="icon-sm" strokeWidth={1.75} aria-hidden="true" />
+                Demo checkout
+              </span>
+            </div>
+          </div>
+          <figure className="hero-media">
+            <Image
+              src="/assets/tech/hero-workspace.jpg"
+              width={1600}
+              height={1067}
+              alt="A laptop, phone, smartwatch and headphones arranged on a desk"
+              sizes="(min-width: 1024px) 560px, 100vw"
+              priority
+            />
+            <figcaption>The setup · Studio 04</figcaption>
+          </figure>
+        </div>
+      </section>
+
+      <CatalogBrowser
+        key={`${search}|${category}|${sort}|${min}|${max}|${first(params.assistant) === "1"}`}
+        products={products}
+        authenticated={Boolean(user)}
+        initial={{
+          search,
+          category,
+          sort,
+          min,
+          max,
+          assistant: first(params.assistant) === "1",
+        }}
+      />
+
+      <section className="field-band">
+        <div className="container field-band-grid">
+          <div>
+            <p className="eyebrow">Why this collection</p>
+            <h2>Chosen for the everyday.</h2>
+            <p>
+              Every piece here has to justify its place: fast enough for work, simple enough to live
+              with, and supported long enough to matter. Fewer things, used properly.
+            </p>
+            <GuideButton className="link-btn">
+              Let the guide narrow it down
+              <ArrowRight className="icon-sm" strokeWidth={1.75} aria-hidden="true" />
+            </GuideButton>
+          </div>
+          <figure className="field-band-media">
+            <Image
+              src="/assets/tech/feature-workspace.jpg"
+              width={1600}
+              height={1068}
+              alt="A person working at a desk with a monitor, laptop, keyboard and mouse"
+              sizes="(min-width: 1024px) 560px, 100vw"
+              loading="lazy"
+            />
+          </figure>
+        </div>
+      </section>
+
+      <section className="value-band">
+        <div className="container value-row">
+          <div className="value-item">
+            <Package className="icon" strokeWidth={1.75} aria-hidden="true" />
+            <div>
+              <h3>Real inventory</h3>
+              <p>Stock counts move when orders are placed and return when an order is cancelled.</p>
+            </div>
+          </div>
+          <div className="value-item">
+            <ShieldCheck className="icon" strokeWidth={1.75} aria-hidden="true" />
+            <div>
+              <h3>Orders that persist</h3>
+              <p>Your account, bag and order history live in SQLite, not in this tab.</p>
+            </div>
+          </div>
+          <div className="value-item">
+            <Truck className="icon" strokeWidth={1.75} aria-hidden="true" />
+            <div>
+              <h3>One honest checkout</h3>
+              <p>A demo checkout — no card is charged and no payment details are requested.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <noscript>
+        <div className="container" style={{ padding: "40px 22px" }}>
+          <h1 style={{ fontSize: 28 }}>Northline needs JavaScript</h1>
+          <p style={{ marginTop: 8, color: "#6e6e73" }}>
+            Enable JavaScript to search the catalog, manage your bag and check out.
           </p>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
+      </noscript>
+    </>
   );
 }
